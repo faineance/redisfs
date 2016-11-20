@@ -38,25 +38,6 @@ const ROOT_ATTR: fuse::FileAttr = fuse::FileAttr {
     flags: 0,
 };
 
-
-
-const HELLO_TXT_ATTR: FileAttr = FileAttr {
-    ino: 2,
-    size: 13,
-    blocks: 1,
-    atime: DEFAULT_TIME,
-    mtime: DEFAULT_TIME,
-    ctime: DEFAULT_TIME,
-    crtime: DEFAULT_TIME,
-    kind: FileType::RegularFile,
-    perm: 0o644,
-    nlink: 1,
-    uid: 501,
-    gid: 20,
-    rdev: 0,
-    flags: 0,
-};
-
 struct RedisFS {
     redis_connection: redis::Connection,
 }
@@ -66,7 +47,7 @@ impl RedisFS {
         let client = try!(redis::Client::open(redis_connection_string));
         Ok(RedisFS { redis_connection: try!(client.get_connection()) })
     }
-    
+
     fn get_key_vals_ino(&self) -> HashMap<u64, (String, String)> {
 
         let keys: Vec<String> = self.redis_connection.keys("*").unwrap();
