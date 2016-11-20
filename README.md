@@ -8,7 +8,7 @@ $ redis-cli
 OK
 $ ls ~/mnt 
 hello_key
-$ cat ~/mnt/hello
+$ cat ~/mnt/hello_key
 world_value
 ```
 
