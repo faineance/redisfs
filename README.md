@@ -10,7 +10,11 @@ $ ls ~/mnt
 hello_key
 $ cat ~/mnt/hello_key
 world_value
+$ echo foobar >> ~/mnt/hello_key
+$ redis-cli
+127.0.0.1:6379> get hello_key
+"world_valuefoobar\n"
 ```
 
 todo:
-- make writeable
+- make more writeable
