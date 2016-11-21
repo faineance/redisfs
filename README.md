@@ -1,5 +1,5 @@
 # redisfs
-Mount redis as a filesystem.
+Interact with redis through the filesystem.
 
 ```shell
 $ cargo run -- ~/mnt/ redis://127.0.0.1/ &
