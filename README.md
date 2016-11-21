@@ -13,7 +13,7 @@ world_value
 $ printf 'foobar' >> ~/mnt/hello_key
 $ redis-cli
 127.0.0.1:6379> get hello_key
-"world_valuefoobar\n"
+"world_valuefoobar"
 ```
 
 todo:
