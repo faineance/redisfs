@@ -1,3 +1,4 @@
+#![feature(insert_str,type_ascription)]
 #[macro_use]
 extern crate log;
 extern crate env_logger;
@@ -11,7 +12,8 @@ use redis::Commands;
 use std::collections::HashMap;
 use std::env;
 use fuse::{FileType, FileAttr, Filesystem, Request, ReplyData, ReplyEntry, ReplyAttr, ReplyWrite,
-           ReplyOpen, ReplyDirectory};
+           ReplyOpen, ReplyDirectory, ReplyEmpty};
+use std::str;
 
 use libc::{ENOENT, ENOSYS};
 
@@ -154,28 +156,33 @@ impl Filesystem for RedisFS {
     fn open(&mut self, _req: &fuse::Request, ino: u64, _flags: u32, reply: ReplyOpen) {
         reply.opened(0, 0);
     }
+    fn flush(&mut self, _req: &Request, _ino: u64, _fh: u64, _lock_owner: u64, reply: ReplyEmpty) {
+        reply.ok();
+    }
 
+    fn fsync(&mut self, _req: &Request, _ino: u64, _fh: u64, _datasync: bool, reply: ReplyEmpty) {
+        reply.ok();
+    }
     fn write(&mut self,
              _req: &Request,
              ino: u64,
              _fh: u64,
-             _offset: u64,
-             _data: &[u8],
+             offset: u64,
+             data: &[u8],
              _flags: u32,
              reply: ReplyWrite) {
-        println!("{:?} {:?} {:?} {:?} {:?} {:?}",
-                 _req,
-                 ino,
-                 _fh,
-                 _offset,
-                 _data,
-                 _flags);
+
+
         let s = self.get_key_vals_ino();
         match s.get(&ino) {
             Some(keyval) => {
 
-                reply.written(10)
-                // reply.data(&keyval.1.as_bytes()[offset as usize..]);
+                let _: () = self.redis_connection
+                    .set(keyval.0.clone(),
+                         keyval.1.clone() + str::from_utf8(data).unwrap())
+                    .unwrap();
+                reply.written(data.len() as u32);
+
             }
             None => reply.error(ENOENT),
         }
@@ -205,8 +212,12 @@ impl Filesystem for RedisFS {
 
     }
 }
+fn update(bytes: &mut [u8], bytes_to_write: &[u8], offset: u64) {
+    let start = offset as usize;
+    let end = start + bytes_to_write.len();
 
-
+    bytes[start..end].copy_from_slice(bytes_to_write);
+}
 
 fn main() {
     env_logger::init().unwrap();
