@@ -10,14 +10,14 @@ use std::path::Path;
 use redis::Commands;
 use std::collections::HashMap;
 use std::env;
-use fuse::{FileType, FileAttr, Filesystem, Request, ReplyData, ReplyEntry, ReplyAttr,
-           ReplyDirectory};
+use fuse::{FileType, FileAttr, Filesystem, Request, ReplyData, ReplyEntry, ReplyAttr, ReplyWrite,
+           ReplyOpen, ReplyDirectory};
 
 use libc::{ENOENT, ENOSYS};
 
 const TTL: Timespec = Timespec { sec: 1, nsec: 0 };
 
-const DEFAULT_TIME: time::Timespec = time::Timespec { sec: 0, nsec: 0 };
+const DEFAULT_TIME: Timespec = Timespec { sec: 0, nsec: 0 };
 
 pub const BLOCK_SIZE: u32 = 4096;
 
@@ -73,6 +73,7 @@ impl Filesystem for RedisFS {
     fn statfs(&mut self, _req: &fuse::Request, _ino: u64, reply: fuse::ReplyStatfs) {
         reply.statfs(0, 0, 0, 0, 0, BLOCK_SIZE, 256, 0);
     }
+
     fn lookup(&mut self, _req: &Request, parent: u64, name: &Path, reply: ReplyEntry) {
         if parent == 1 {
             for (ino, (key, val)) in self.get_key_vals_ino() {
@@ -101,7 +102,6 @@ impl Filesystem for RedisFS {
             }
         }
         reply.error(ENOENT);
-
     }
 
     fn getattr(&mut self, _req: &Request, ino: u64, reply: ReplyAttr) {
@@ -151,6 +151,37 @@ impl Filesystem for RedisFS {
 
     }
 
+    fn open(&mut self, _req: &fuse::Request, ino: u64, _flags: u32, reply: ReplyOpen) {
+        reply.opened(0, 0);
+    }
+
+    fn write(&mut self,
+             _req: &Request,
+             ino: u64,
+             _fh: u64,
+             _offset: u64,
+             _data: &[u8],
+             _flags: u32,
+             reply: ReplyWrite) {
+        println!("{:?} {:?} {:?} {:?} {:?} {:?}",
+                 _req,
+                 ino,
+                 _fh,
+                 _offset,
+                 _data,
+                 _flags);
+        let s = self.get_key_vals_ino();
+        match s.get(&ino) {
+            Some(keyval) => {
+
+                reply.written(10)
+                // reply.data(&keyval.1.as_bytes()[offset as usize..]);
+            }
+            None => reply.error(ENOENT),
+        }
+
+    }
+
     fn readdir(&mut self,
                _req: &Request,
                ino: u64,
@@ -171,6 +202,7 @@ impl Filesystem for RedisFS {
         } else {
             reply.error(ENOENT);
         }
+
     }
 }
 
